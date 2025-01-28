@@ -52,7 +52,7 @@ func RunUpMigrations(db *sql.DB, dirName string, tableName string, steps int) er
 		defer cancel()
 		err = runMigration(ctx, db, tableName, &migration, string(query))
 		if err != nil {
-			return fmt.Errorf("failed to execturte %s migration, %s", migration.Name, err.Error())
+			return fmt.Errorf("failed to execute %s migration, %s", migration.Name, err.Error())
 		}
 
 	}
