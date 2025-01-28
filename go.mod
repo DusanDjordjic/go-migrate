@@ -1,4 +1,4 @@
-module go-migrate
+module github/DusanDjordjic/go-migrate
 
 go 1.22.2
 
