@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go-migrate/pkg/conn"
-	"go-migrate/pkg/migrations"
+	"github/DusanDjordjic/go-migrate/pkg/conn"
+	"github/DusanDjordjic/go-migrate/pkg/migrations"
 	"os"
 	"path/filepath"
 	"time"

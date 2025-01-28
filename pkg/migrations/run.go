@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"go-migrate/pkg/models"
+	"github/DusanDjordjic/go-migrate/pkg/models"
 	"os"
 	"path/filepath"
 	"time"
