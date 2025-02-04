@@ -29,7 +29,7 @@ func InitMigrationsFolder(name string) error {
 	}
 
 	if exists {
-		return fmt.Errorf("%s migrations folder already exists", name)
+		return nil
 	}
 
 	err = os.Mkdir(name, 0755)
