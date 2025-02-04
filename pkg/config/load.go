@@ -35,14 +35,11 @@ func Load() (AppConfig, error) {
 			continue
 		}
 
-		splits := strings.Split(line, "=")
-		if len(splits) != 2 {
+		key, val, found := strings.Cut(line, "=")
+		if !found {
 			fmt.Fprintf(os.Stderr, "WARN: invalid line %d, %s", index+1, line)
 			continue
 		}
-
-		key := splits[0]
-		val := splits[1]
 
 		switch key {
 		case DSN_ENV:
