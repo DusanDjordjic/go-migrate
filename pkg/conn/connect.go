@@ -20,5 +20,10 @@ func Connect(conf config.AppConfig) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database, %s", err)
 	}
 
-	return db, nil
+	if len(conf.SQLToExecOnStart) == 0 {
+		return db, nil
+	}
+
+	_, err = db.Exec(conf.SQLToExecOnStart)
+	return db, err
 }

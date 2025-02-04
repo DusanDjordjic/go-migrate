@@ -7,17 +7,20 @@ import (
 )
 
 const (
-	DSN_ENV     = "GO_MIGRATE_DSN"
-	DRIVER_ENV  = "GO_MIGRATE_DRIVER"
-	CONFIG_FILE = ".gomigrate"
+	DSN_ENV               = "GO_MIGRATE_DSN"
+	DRIVER_ENV            = "GO_MIGRATE_DRIVER"
+	SQL_EXEC_ON_START_ENV = "GO_MIGRATE_EXEC_ON_START"
+	CONFIG_FILE           = ".gomigrate"
 )
 
 func Load() (AppConfig, error) {
 	conf := AppConfig{}
 	dsn, _ := loadEnv(DSN_ENV)
 	driver, _ := loadEnv(DRIVER_ENV)
+	sql, _ := loadEnv(SQL_EXEC_ON_START_ENV)
 	conf.DSN = dsn
 	conf.Driver = driver
+	conf.SQLToExecOnStart = sql
 
 	fileContent, err := os.ReadFile(CONFIG_FILE)
 	if err != nil {
@@ -46,6 +49,8 @@ func Load() (AppConfig, error) {
 			conf.DSN = val
 		case DRIVER_ENV:
 			conf.Driver = val
+		case SQL_EXEC_ON_START_ENV:
+			conf.SQLToExecOnStart = val
 		default:
 			fmt.Fprintf(os.Stderr, "WARN: invalid variable at %d. line", index)
 		}

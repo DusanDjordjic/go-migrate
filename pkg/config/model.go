@@ -5,8 +5,9 @@ import "fmt"
 var AVAILABLE_DRIVERS = [...]string{"sqlite3", "postgres"}
 
 type AppConfig struct {
-	DSN    string
-	Driver string
+	DSN              string
+	Driver           string
+	SQLToExecOnStart string
 }
 
 func (app *AppConfig) Check() error {
