@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github/DusanDjordjic/go-migrate/pkg/config"
 	"github/DusanDjordjic/go-migrate/pkg/conn"
 	"github/DusanDjordjic/go-migrate/pkg/migrations"
 	"os"
@@ -10,17 +11,17 @@ import (
 	"time"
 )
 
-const DSN_ENV = "GO_MIGRATE_DSN"
-
 func main() {
-	dsn, err := conn.GetDsn(DSN_ENV)
+	config, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 
-	db, err := conn.Connect(dsn)
+	db, err := conn.Connect(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 
 	defer db.Close()
@@ -42,6 +43,7 @@ func main() {
 		err := migrations.Init(db, *dirName, *tableName)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			os.Exit(1)
 		}
 
 	case "generate":

@@ -1,0 +1,2 @@
+GO_MIGRATE_DSN=foodorering2.db
+GO_MIGRATE_DRIVER=sqlite3

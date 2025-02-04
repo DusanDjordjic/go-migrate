@@ -3,12 +3,14 @@ package conn
 import (
 	"database/sql"
 	"fmt"
+	"github/DusanDjordjic/go-migrate/pkg/config"
 
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func Connect(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dsn)
+func Connect(conf config.AppConfig) (*sql.DB, error) {
+	db, err := sql.Open(conf.Driver, conf.DSN)
 	if err != nil {
 		return nil, err
 	}
