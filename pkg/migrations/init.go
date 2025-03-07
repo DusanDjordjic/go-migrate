@@ -54,48 +54,13 @@ func DoesMigrationsFolderExists(name string) (bool, error) {
 }
 
 func InitMigrationsTable(db *sql.DB, tableName string) error {
-	exists, err := DoesMigrationsTableExist(db, tableName)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		return fmt.Errorf("table %s already exists", tableName)
-	}
-
-	db.Exec(fmt.Sprintf(`
-CREATE TABLE %s (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
+	_, err := db.Exec(fmt.Sprintf(`
+CREATE TABLE IF NOT EXISTS %s (
+id SERIAL PRIMARY KEY,
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 name VARCHAR(128) NOT NULL,
 executed INTEGER DEFAULT 0
 );`, tableName))
 
-	return nil
-}
-
-func DoesMigrationsTableExist(db *sql.DB, tableName string) (bool, error) {
-	rows, err := db.Query(`
-SELECT name
-FROM sqlite_master
-WHERE type='table' AND name=$1;
-`, tableName)
-	if err != nil {
-		return true, fmt.Errorf("failed to query existing tables, %s", err.Error())
-	}
-
-	defer rows.Close()
-
-	res := rows.Next()
-	if res {
-		// There exists something so its the migrations table
-		return true, nil
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return true, fmt.Errorf("failed to get query results, %s", err.Error())
-	}
-
-	return false, nil
+	return err
 }

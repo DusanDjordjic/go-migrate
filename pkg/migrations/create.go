@@ -13,15 +13,14 @@ func CreateMigration(db *sql.DB, table string, name string, id *uint, createdAt 
 		return fmt.Errorf("out parameter createdAt is nil")
 	}
 
-	result, err := db.Exec(fmt.Sprintf(`
+	row := db.QueryRow(fmt.Sprintf(`
 INSERT INTO %s
 (name, executed)
-VALUES ($1, $2)
-`, table), name, false)
-	if err != nil {
-		return fmt.Errorf("failed to insert \"%s\" migration, %s", name, err.Error())
-	}
-	lastInsertedId, err := result.LastInsertId()
+VALUES ($1, $2) RETURNING id
+`, table), name, 0)
+
+	var lastInsertedId uint = 0
+	err := row.Scan(&lastInsertedId)
 	if err != nil {
 		return fmt.Errorf("failed to get last inserted id, %s", err.Error())
 	}

@@ -2,7 +2,7 @@ package config
 
 import "fmt"
 
-var AVAILABLE_DRIVERS = [...]string{"sqlite3", "postgres"}
+var AVAILABLE_DRIVERS = [...]string{"sqlite3", "postgres", "mysql"}
 
 type AppConfig struct {
 	DSN              string
