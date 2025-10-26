@@ -2,7 +2,7 @@ package config
 
 import "fmt"
 
-var AVAILABLE_DRIVERS = [...]string{"sqlite3", "postgres", "mysql"}
+var AVAILABLE_DRIVERS = [...]string{"postgres"}
 
 type AppConfig struct {
 	DSN              string
@@ -28,7 +28,7 @@ func (app *AppConfig) Check() error {
 	}
 
 	if !found {
-		return fmt.Errorf("Driver \"%s\" is not supported yet", app.Driver)
+		return fmt.Errorf("driver \"%s\" is not supported yet", app.Driver)
 	}
 
 	return nil

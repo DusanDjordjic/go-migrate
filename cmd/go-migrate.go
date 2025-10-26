@@ -1,108 +1,89 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github/DusanDjordjic/go-migrate/pkg/config"
-	"github/DusanDjordjic/go-migrate/pkg/conn"
-	"github/DusanDjordjic/go-migrate/pkg/migrations"
+	"github/DusanDjordjic/go-migrate/pkg/driver"
+	"github/DusanDjordjic/go-migrate/pkg/runner"
 	"os"
-	"path/filepath"
-	"time"
 )
 
 func main() {
-	config, err := config.Load()
+	conf, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-
-	db, err := conn.Connect(config)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
-	}
-
-	defer db.Close()
 
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: [subcommand] [flags]")
-		fmt.Println("Available subcommands: init, generate, up, down")
+		fmt.Fprintf(os.Stderr, "Usage: [subcommand] [flags]\n")
+		fmt.Fprintf(os.Stderr, "Available subcommands: init, new, up, down")
 		os.Exit(1)
 	}
+
+	var d driver.Driver
+
+	switch conf.Driver {
+	case "postgres":
+		d = driver.NewPostgresqlDriver()
+	default:
+		fmt.Fprintf(os.Stderr, "unsupported driver %s. supported drivers %v", conf.Driver, config.AVAILABLE_DRIVERS)
+		os.Exit(1)
+	}
+
+	r, err := runner.New(
+		d,
+		runner.Config{
+			MigrationsFolder: "migrations",
+		},
+		driver.ConnectionConfig{
+			DSN:    conf.DSN,
+			Table:  "migrations",
+			Schema: "public",
+		},
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to connect to the database, %s", err.Error())
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
 
 	switch os.Args[1] {
 	case "init":
 		initCmd := flag.NewFlagSet("init", flag.ExitOnError)
-		dirName := initCmd.String("dir", "migrations", "Migrations directory name (default \"migrations\"")
-		tableName := initCmd.String("table", "migrations", "Migrations table name (default \"migrations\")")
 
 		initCmd.Parse(os.Args[2:])
 
-		err := migrations.Init(db, *dirName, *tableName)
+		err := r.Init(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			os.Exit(1)
 		}
 
-	case "generate":
-		generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
-		dirName := generateCmd.String("dir", "migrations", "Migrations directory name (default \"migrations\"")
-		tableName := generateCmd.String("table", "migrations", "Migrations table name (default \"migrations\")")
-		name := generateCmd.String("name", "", "name of migration (required)")
+	case "new":
+		newCmd := flag.NewFlagSet("new", flag.ExitOnError)
+		name := newCmd.String("name", "", "name of migration (required)")
 
-		generateCmd.Parse(os.Args[2:])
+		newCmd.Parse(os.Args[2:])
 
 		if *name == "" {
 			fmt.Fprintf(os.Stderr, "name is required\n")
-			generateCmd.Usage()
+			newCmd.Usage()
 			os.Exit(1)
 		}
 
-		var (
-			id              uint
-			createdAtString string
-			createdAt       time.Time
-		)
-
-		err := migrations.CreateMigration(db, *tableName, *name, &id, &createdAtString)
+		r.New(ctx, *name)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-			os.Exit(1)
-		}
-
-		createdAt, err = time.Parse("2006-01-02T15:04:05Z", createdAtString)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to parse created_at, %s\n", err.Error())
-			os.Exit(1)
-		}
-
-		timestampMillis := createdAt.Unix()
-
-		upFile := fmt.Sprintf("%d_%s.up.sql", timestampMillis, *name)
-		downFile := fmt.Sprintf("%d_%s.down.sql", timestampMillis, *name)
-
-		upFile = filepath.Join(*dirName, upFile)
-		_, err = os.Create(upFile)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create %s file, %s\n", upFile, err.Error())
-			os.Exit(1)
-		}
-
-		downFile = filepath.Join(*dirName, downFile)
-		_, err = os.Create(downFile)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create %s file, %s\n", downFile, err.Error())
-			os.Remove(upFile)
 			os.Exit(1)
 		}
 
 	case "up":
 		upCmd := flag.NewFlagSet("up", flag.ExitOnError)
-		tableName := upCmd.String("table", "migrations", "Migrations table name (default \"migrations\")")
-		dirName := upCmd.String("dir", "migrations", "Migrations directory name (default \"migrations\"")
-		steps := upCmd.Int("steps", -1, "How many ups you want to do (default -1 meaning all)")
+		steps := upCmd.Int("steps", -1, "How many ups you want to do (-1 means all) (-1 default)")
 		upCmd.Parse(os.Args[2:])
 
 		if *steps == 0 {
@@ -115,18 +96,16 @@ func main() {
 			os.Exit(1)
 		}
 
-		err := migrations.RunUpMigrations(db, *dirName, *tableName, *steps)
+		err := r.Up(ctx, *steps)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to execute up migrations, %s\n", err.Error())
 			os.Exit(1)
 		}
 
 	case "down":
-		upCmd := flag.NewFlagSet("up", flag.ExitOnError)
-		tableName := upCmd.String("table", "migrations", "Migrations table name (default \"migrations\")")
-		dirName := upCmd.String("dir", "migrations", "Migrations directory name (default \"migrations\"")
-		steps := upCmd.Int("steps", -1, "How many ups you want to do (default -1 meaning all)")
-		upCmd.Parse(os.Args[2:])
+		downCmd := flag.NewFlagSet("down", flag.ExitOnError)
+		steps := downCmd.Int("steps", 1, "How many downs you want to do (-1 means all) (1 default)")
+		downCmd.Parse(os.Args[2:])
 
 		if *steps == 0 {
 			fmt.Fprintf(os.Stderr, "steps is invalid, it can be -1, or some positive number, but its %d\n", *steps)
@@ -138,15 +117,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		err := migrations.RunDownMigrations(db, *dirName, *tableName, *steps)
+		err := r.Down(ctx, *steps)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to execute up migrations, %s\n", err.Error())
+			fmt.Fprintf(os.Stderr, "failed to execute down migrations, %s\n", err.Error())
 			os.Exit(1)
 		}
 
 	default:
 		fmt.Printf("Unknown subcommand: %s\n", os.Args[1])
-		fmt.Println("Available subcommands: add, list")
+		fmt.Println("Available subcommands: init, new, up, down")
 		os.Exit(1)
 	}
 }

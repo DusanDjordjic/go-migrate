@@ -1,2 +1,2 @@
-GO_MIGRATE_DSN=foodorering2.db
-GO_MIGRATE_DRIVER=sqlite3
+GO_MIGRATE_DSN=postgres://postgres:postgres@localhost:5432/bookstore?sslmode=disable&search_path=public
+GO_MIGRATE_DRIVER=postgres

@@ -7,24 +7,27 @@ import (
 )
 
 const (
-	DSN_ENV               = "GO_MIGRATE_DSN"
-	DRIVER_ENV            = "GO_MIGRATE_DRIVER"
-	SQL_EXEC_ON_START_ENV = "GO_MIGRATE_EXEC_ON_START"
-	CONFIG_FILE           = ".gomigrate"
+	DSN_ENV     = "GO_MIGRATE_DSN"
+	DRIVER_ENV  = "GO_MIGRATE_DRIVER"
+	CONFIG_FILE = ".gomigrate"
 )
 
 func Load() (AppConfig, error) {
 	conf := AppConfig{}
-	dsn, _ := loadEnv(DSN_ENV)
-	driver, _ := loadEnv(DRIVER_ENV)
-	sql, _ := loadEnv(SQL_EXEC_ON_START_ENV)
-	conf.DSN = dsn
-	conf.Driver = driver
-	conf.SQLToExecOnStart = sql
+
+	dsn, err := loadEnv(DSN_ENV)
+	if err == nil {
+		conf.DSN = dsn
+	}
+
+	driver, err := loadEnv(DRIVER_ENV)
+	if err == nil {
+		conf.Driver = driver
+	}
 
 	fileContent, err := os.ReadFile(CONFIG_FILE)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARN: failed to read config file %s, %s", CONFIG_FILE, err.Error())
+		fmt.Fprintf(os.Stderr, "warning: failed to read config file %s, %s", CONFIG_FILE, err.Error())
 		if conf.Check() == nil {
 			return conf, nil
 		}
@@ -40,7 +43,7 @@ func Load() (AppConfig, error) {
 
 		key, val, found := strings.Cut(line, "=")
 		if !found {
-			fmt.Fprintf(os.Stderr, "WARN: invalid line %d, %s", index+1, line)
+			fmt.Fprintf(os.Stderr, "warning: invalid line %d, %s", index+1, line)
 			continue
 		}
 
@@ -49,10 +52,8 @@ func Load() (AppConfig, error) {
 			conf.DSN = val
 		case DRIVER_ENV:
 			conf.Driver = val
-		case SQL_EXEC_ON_START_ENV:
-			conf.SQLToExecOnStart = val
 		default:
-			fmt.Fprintf(os.Stderr, "WARN: invalid variable at %d. line", index)
+			fmt.Fprintf(os.Stderr, "warning: invalid variable at %d. line", index)
 		}
 	}
 
